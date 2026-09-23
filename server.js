@@ -5,6 +5,29 @@ const fs = require("fs");
 const initDatabase = require("./database");
 const compression = require("compression");
 
+const multer = require("multer");
+const path = require("path");
+
+// Configuração do multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, "public/uploads"));
+  },
+  filename: (req, file, cb) => {
+    const uniqueName =
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB máximo
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -346,23 +369,56 @@ app.put("/api/dias-juntos", (req, res) => {
 // ==========================================
 //  ROTAS: FOTOS
 // ==========================================
-app.post("/api/fotos", (req, res) => {
+// ====== ROTAS DE FOTOS (COM UPLOAD DE ARQUIVO) ======
+app.get("/api/fotos", (req, res) => {
   try {
-    const { legenda, imagem } = req.body;
+    const fotos = query("SELECT * FROM fotos ORDER BY data_adicionada DESC");
+    res.json(fotos);
+  } catch (err) {
+    console.error("Erro ao listar fotos:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    if (!imagem) {
-      return res.status(400).json({ error: "Imagem não fornecida" });
+app.post("/api/fotos", upload.single("imagem"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nenhuma imagem enviada" });
     }
 
-    const result = run("INSERT INTO fotos (legenda, imagem) VALUES (?, ?)", [
-      legenda || "",
-      imagem,
+    const legenda = req.body.legenda || "";
+    const caminhoImagem = "/uploads/" + req.file.filename;
+
+    console.log("Salvando foto:", caminhoImagem);
+
+    run("INSERT INTO fotos (legenda, imagem) VALUES (?, ?)", [
+      legenda,
+      caminhoImagem,
     ]);
 
-    res.json({ id: result.lastInsertRowid, message: "Foto adicionada!" });
+    res.json({ message: "Foto adicionada!", caminho: caminhoImagem });
   } catch (err) {
     console.error("Erro ao salvar foto:", err);
-    res.status(500).json({ error: "Erro interno", details: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/fotos/:id", (req, res) => {
+  try {
+    const foto = get("SELECT imagem FROM fotos WHERE id = ?", [req.params.id]);
+
+    if (foto && foto.imagem) {
+      const caminhoCompleto = path.join(__dirname, "public", foto.imagem);
+      if (fs.existsSync(caminhoCompleto)) {
+        fs.unlinkSync(caminhoCompleto);
+      }
+    }
+
+    run("DELETE FROM fotos WHERE id = ?", [req.params.id]);
+    res.json({ message: "Foto removida!" });
+  } catch (err) {
+    console.error("Erro ao deletar foto:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 

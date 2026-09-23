@@ -1375,69 +1375,78 @@ if (formFoto) {
 }
 
 // Função de compressão robusta - tenta várias vezes com qualidade menor
-async function compressImageRobusta(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        // Tentar com diferentes qualidades até funcionar
-        const tentativas = [
-          { maxWidth: 800, quality: 0.7 },
-          { maxWidth: 600, quality: 0.6 },
-          { maxWidth: 400, quality: 0.5 },
-          { maxWidth: 300, quality: 0.4 },
-        ];
+// ====== GALERIA DE FOTOS COM UPLOAD REAL ======
+async function loadFotos() {
+  try {
+    const fotos = await api("/api/fotos");
+    const container = document.getElementById("lista-fotos");
+    if (!container) return;
 
-        let tentativaIndex = 0;
+    if (fotos.length === 0) {
+      container.innerHTML =
+        '<p style="text-align:center; color:var(--text-muted); padding:2rem; grid-column:1/-1;">Nenhuma foto ainda. Adicione a primeira!</p>';
+      return;
+    }
 
-        function tentarCompressao() {
-          if (tentativaIndex >= tentativas.length) {
-            reject(new Error("Não foi possível comprimir a imagem"));
-            return;
-          }
+    container.innerHTML = fotos
+      .map(
+        (f) => `
+      <div class="foto-card">
+        <button class="foto-delete" onclick="deleteFoto(${f.id})">🗑️</button>
+        <img src="${f.imagem}" alt="${f.legenda || "Foto"}" loading="lazy">
+        ${f.legenda ? `<div class="foto-legenda">${f.legenda}</div>` : ""}
+      </div>
+    `,
+      )
+      .join("");
+  } catch (e) {
+    console.error("Erro fotos:", e);
+  }
+}
 
-          const { maxWidth, quality } = tentativas[tentativaIndex];
-          const canvas = document.createElement("canvas");
-          let width = img.width;
-          let height = img.height;
+const formFoto = document.getElementById("form-foto");
+if (formFoto) {
+  formFoto.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
+    const fileInput = document.getElementById("foto-file");
+    const legendaInput = document.getElementById("foto-legenda");
+    const file = fileInput.files[0];
 
-          canvas.width = width;
-          canvas.height = height;
+    if (!file) {
+      showNotification("Selecione uma foto primeiro!", "⚠️");
+      return false;
+    }
 
-          const ctx = canvas.getContext("2d");
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, width, height);
-          ctx.drawImage(img, 0, 0, width, height);
+    try {
+      showNotification("Enviando foto...", "📸");
 
-          const compressed = canvas.toDataURL("image/jpeg", quality);
-          const sizeInMB = (compressed.length * 0.75) / (1024 * 1024);
+      // Criar FormData para upload real
+      const formData = new FormData();
+      formData.append("imagem", file);
+      formData.append("legenda", legendaInput.value);
 
-          console.log(
-            `Tentativa ${tentativaIndex + 1}: ${width}x${height}, qualidade ${quality}, tamanho: ${sizeInMB.toFixed(2)}MB`,
-          );
+      const response = await fetch("/api/fotos", {
+        method: "POST",
+        body: formData,
+      });
 
-          // Se menor que 3MB, está bom
-          if (sizeInMB < 3) {
-            resolve(compressed);
-          } else {
-            tentativaIndex++;
-            tentarCompressao();
-          }
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao enviar");
+      }
 
-        tentarCompressao();
-      };
-      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-      img.src = event.target.result;
-    };
-    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
-    reader.readAsDataURL(file);
+      formFoto.reset();
+      showNotification("Foto adicionada com sucesso! 🎉", "📸");
+
+      setTimeout(loadFotos, 500);
+    } catch (err) {
+      console.error("Erro ao enviar foto:", err);
+      showNotification("Erro: " + err.message, "❌");
+    }
+
+    return false;
   });
 }
 
