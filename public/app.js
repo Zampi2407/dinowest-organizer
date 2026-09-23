@@ -1296,32 +1296,62 @@ if (formFoto) {
       const file = fileInput.files[0];
 
       if (file) {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          await api("/api/fotos", "POST", {
-            legenda: legendaInput.value,
-            imagem: event.target.result,
-          });
-          formFoto.reset();
-          showNotification("Foto adicionada! 📸", "📸");
-          loadFotos();
-        };
-        reader.readAsDataURL(file);
+        showNotification("Processando foto...", "📸");
+
+        // Comprimir a imagem antes de enviar
+        const compressedImage = await compressImage(file, 800, 0.7);
+
+        await api("/api/fotos", "POST", {
+          legenda: legendaInput.value,
+          imagem: compressedImage,
+        });
+
+        formFoto.reset();
+        showNotification("Foto adicionada com sucesso! 📸", "📸");
+        loadFotos();
       }
     } catch (err) {
       console.error("Erro foto:", err);
-      showNotification("Erro ao adicionar foto", "❌");
+      showNotification("Erro ao adicionar foto. Tente uma menor.", "❌");
     }
     return false;
   });
 }
 
-window.deleteFoto = async function (id) {
-  if (confirm("Remover esta foto?")) {
-    await api(`/api/fotos/${id}`, "DELETE");
-    loadFotos();
-  }
-};
+// Função para comprimir imagem
+function compressImage(file, maxWidth, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        // Redimensionar mantendo proporção
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Converter para base64 comprimido
+        const compressed = canvas.toDataURL("image/jpeg", quality);
+        resolve(compressed);
+      };
+      img.onerror = reject;
+      img.src = event.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // ==========================================
 // ✨ SONHOS DO CASAL
