@@ -6,7 +6,7 @@ const initDatabase = require("./database");
 const cloudinary = require("cloudinary").v2;
 const multer = require("multer");
 
-// Carregar variáveis de ambiente (só funciona localmente com .env)
+// Carregar variáveis de ambiente
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
@@ -18,10 +18,14 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configurar multer para uploads temporários
+// Configurar multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "public/uploads"));
+    const uploadDir = path.join(__dirname, "public/uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueName =
@@ -38,18 +42,16 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// --- A PARTIR DAQUI, MANTÉM TUDO O QUE JÁ ESTAVA NO SEU ARQUIVO ---
+const app = express();
+const PORT = process.env.PORT || 8000;
+
+// Middlewares
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ... (suas rotas de API, banco de dados, etc.) ...
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
-
+// Variável global do banco de dados
 let db;
 
 function query(sql, params = []) {
@@ -61,12 +63,20 @@ function query(sql, params = []) {
   return results;
 }
 
-const run = (sql, params = []) => {
+function run(sql, params = []) {
   db.run(sql, params);
-  const lastId = db.getlastInsertRowid();
-  saveDatabase(db);
+  const idStmt = db.prepare("SELECT last_insert_rowid() as id");
+  idStmt.step();
+  const lastId = idStmt.getAsObject().id;
+  idStmt.free();
+
+  // Salvar banco de dados
+  const data = db.export();
+  const buffer = Buffer.from(data);
+  fs.writeFileSync(path.join(__dirname, "dinowest.db"), buffer);
+
   return { lastInsertRowid: lastId };
-};
+}
 
 function get(sql, params = []) {
   const stmt = db.prepare(sql);
@@ -76,21 +86,10 @@ function get(sql, params = []) {
   return result;
 }
 
-initDatabase()
-  .then((database) => {
-    db = database;
-    console.log("🤠 Banco de dados inicializado!");
+// ==========================================
+// ROTAS DA API
+// ==========================================
 
-    app.listen(PORT, () => {
-      console.log(`🦕🤠 DinoWest Ranch rodando em http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("Erro ao iniciar:", err);
-    process.exit(1);
-  });
-
-// ====== DASHBOARD ======
 app.get("/api/dashboard", (req, res) => {
   const hoje = new Date().toISOString().split("T")[0];
   const mes = hoje.substring(0, 7);
@@ -121,7 +120,6 @@ app.get("/api/dashboard", (req, res) => {
   });
 });
 
-// ====== TAREFAS ======
 app.get("/api/tarefas", (req, res) =>
   res.json(
     query("SELECT * FROM tarefas ORDER BY concluida ASC, data_criacao DESC"),
@@ -153,7 +151,6 @@ app.delete("/api/tarefas/:id", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== EVENTOS ======
 app.get("/api/eventos", (req, res) =>
   res.json(query("SELECT * FROM eventos ORDER BY data_inicio ASC")),
 );
@@ -170,7 +167,6 @@ app.delete("/api/eventos/:id", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== CICLO ======
 app.get("/api/ciclo", (req, res) =>
   res.json(query("SELECT * FROM ciclo ORDER BY data_inicio DESC")),
 );
@@ -190,7 +186,6 @@ app.post("/api/ciclo", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== ÁGUA ======
 app.get("/api/agua", (req, res) => {
   const hoje = new Date().toISOString().split("T")[0];
   let registro = get("SELECT * FROM agua WHERE data = ?", [hoje]);
@@ -219,7 +214,6 @@ app.put("/api/agua", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== FINANÇAS ======
 app.get("/api/financas", (req, res) =>
   res.json(query("SELECT * FROM financas ORDER BY data DESC")),
 );
@@ -242,7 +236,6 @@ app.delete("/api/financas/:id", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== COMPRAS ======
 app.get("/api/compras", (req, res) =>
   res.json(
     query("SELECT * FROM compras ORDER BY comprado ASC, criado_em DESC"),
@@ -269,7 +262,6 @@ app.delete("/api/compras/:id", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== MEDICAMENTOS ======
 app.get("/api/medicamentos", (req, res) =>
   res.json(
     query("SELECT * FROM medicamentos WHERE ativo = 1 ORDER BY horario ASC"),
@@ -288,7 +280,6 @@ app.delete("/api/medicamentos/:id", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== DIÁRIO ======
 app.get("/api/diario", (req, res) =>
   res.json(query("SELECT * FROM diario ORDER BY data DESC, criado_em DESC")),
 );
@@ -310,7 +301,6 @@ app.delete("/api/diario/:id", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ====== HÁBITOS ======
 app.get("/api/habitos", (req, res) => {
   const habitos = query("SELECT * FROM habitos WHERE ativo = 1");
   const hoje = new Date().toISOString().split("T")[0];
@@ -351,36 +341,30 @@ app.post("/api/habitos/:id/toggle", (req, res) => {
   res.json({ message: "OK" });
 });
 
-// ==========================================
-//  ROTAS: DIAS JUNTOS
-// ==========================================
 app.get("/api/dias-juntos", (req, res) => {
   const dataInicio = get("SELECT valor FROM config WHERE chave = ?", [
     "data_inicio_relacionamento",
   ]);
   res.json({ dataInicio: dataInicio ? dataInicio.valor : null });
 });
-
 app.put("/api/dias-juntos", (req, res) => {
   const { dataInicio } = req.body;
   const existente = get("SELECT chave FROM config WHERE chave = ?", [
     "data_inicio_relacionamento",
   ]);
-  if (existente) {
+  if (existente)
     run("UPDATE config SET valor = ? WHERE chave = ?", [
       dataInicio,
       "data_inicio_relacionamento",
     ]);
-  } else {
+  else
     run("INSERT INTO config (chave, valor) VALUES (?, ?)", [
       "data_inicio_relacionamento",
       dataInicio,
     ]);
-  }
   res.json({ message: "Data atualizada!" });
 });
 
-/// ====== ROTAS DE FOTOS COM CLOUDINARY ======
 app.get("/api/fotos", (req, res) => {
   try {
     const fotos = query("SELECT * FROM fotos ORDER BY data_adicionada DESC");
@@ -390,31 +374,11 @@ app.get("/api/fotos", (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 app.post("/api/fotos", upload.single("imagem"), async (req, res) => {
   try {
-    console.log("=== INICIANDO UPLOAD ===");
-    console.log("Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
-    console.log(
-      "API Key:",
-      process.env.CLOUDINARY_API_KEY ? "Configurada" : "NÃO CONFIGURADA",
-    );
-    console.log(
-      "API Secret:",
-      process.env.CLOUDINARY_API_SECRET ? "Configurada" : "NÃO CONFIGURADA",
-    );
-
-    if (!req.file) {
+    if (!req.file)
       return res.status(400).json({ error: "Nenhuma imagem enviada" });
-    }
-
-    console.log("Arquivo recebido:", req.file.originalname);
-    console.log("Caminho temporário:", req.file.path);
-
     const legenda = req.body.legenda || "";
-
-    console.log("Enviando para Cloudinary...");
-
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: "dinowest-fotos",
       transformation: [
@@ -422,41 +386,36 @@ app.post("/api/fotos", upload.single("imagem"), async (req, res) => {
         { quality: "auto", fetch_format: "auto" },
       ],
     });
-
-    console.log("Upload Cloudinary OK! URL:", result.secure_url);
-
     run("INSERT INTO fotos (legenda, imagem) VALUES (?, ?)", [
       legenda,
       result.secure_url,
     ]);
-
-    // Apagar arquivo temporário
     try {
       fs.unlinkSync(req.file.path);
-      console.log("Arquivo temporário apagado");
-    } catch (e) {
-      console.log("Erro ao apagar temporário:", e.message);
-    }
-
+    } catch (e) {}
     res.json({ message: "Foto adicionada!", url: result.secure_url });
   } catch (err) {
-    console.error("=== ERRO NO UPLOAD ===");
-    console.error("Mensagem:", err.message);
-    console.error("Stack:", err.stack);
+    console.error("Erro no upload:", err);
     res.status(500).json({ error: "Erro interno", details: err.message });
   }
 });
-
-// ==========================================
-//  ROTAS: SONHOS
-// ==========================================
-app.get("/api/sonhos", (req, res) => {
-  const sonhos = query(
-    "SELECT * FROM sonhos ORDER BY realizado ASC, criado_em DESC",
-  );
-  res.json(sonhos);
+app.delete("/api/fotos/:id", (req, res) => {
+  const foto = get("SELECT imagem FROM fotos WHERE id = ?", [req.params.id]);
+  if (foto && foto.imagem) {
+    const urlParts = foto.imagem.split("/");
+    const publicId =
+      "dinowest-fotos/" + urlParts[urlParts.length - 1].split(".")[0];
+    cloudinary.uploader.destroy(publicId).catch(() => {});
+  }
+  run("DELETE FROM fotos WHERE id = ?", [req.params.id]);
+  res.json({ message: "OK" });
 });
 
+app.get("/api/sonhos", (req, res) =>
+  res.json(
+    query("SELECT * FROM sonhos ORDER BY realizado ASC, criado_em DESC"),
+  ),
+);
 app.post("/api/sonhos", (req, res) => {
   const { texto, categoria, prioridade } = req.body;
   const result = run(
@@ -465,22 +424,18 @@ app.post("/api/sonhos", (req, res) => {
   );
   res.json({ id: result.lastInsertRowid, message: "Sonho adicionado!" });
 });
-
 app.put("/api/sonhos/:id", (req, res) => {
-  const { realizado } = req.body;
   run("UPDATE sonhos SET realizado = ? WHERE id = ?", [
-    realizado ? 1 : 0,
+    req.body.realizado ? 1 : 0,
     req.params.id,
   ]);
-  res.json({ message: "Sonho atualizado!" });
+  res.json({ message: "OK" });
 });
-
 app.delete("/api/sonhos/:id", (req, res) => {
   run("DELETE FROM sonhos WHERE id = ?", [req.params.id]);
-  res.json({ message: "Sonho removido!" });
+  res.json({ message: "OK" });
 });
 
-// ====== LEMBRETES ======
 app.get("/api/lembretes", (req, res) =>
   res.json(
     query("SELECT * FROM lembretes WHERE concluido = 0 ORDER BY data_hora ASC"),
@@ -500,19 +455,26 @@ app.put("/api/lembretes/:id", (req, res) => {
 });
 
 // SPA fallback
-app.get("*", (req, res) =>
-  res.sendFile(path.join(__dirname, "public", "index.html")),
-);
-
-// ==========================================
-// INICIALIZAÇÃO DO SERVIDOR
-// ==========================================
-const PORT = process.env.PORT || 8000;
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🤠 DinoWest Ranch rodando com sucesso na porta ${PORT}`);
-  console.log(
-    "☁️ Cloudinary configurado:",
-    process.env.CLOUDINARY_CLOUD_NAME ? "SIM" : "NÃO",
-  );
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+// ==========================================
+// INICIALIZAÇÃO DO SERVIDOR (ÚNICA VEZ!)
+// ==========================================
+initDatabase()
+  .then((database) => {
+    db = database;
+    console.log("🤠 Banco de dados inicializado!");
+    console.log(
+      `☁️ Cloudinary configurado: ${process.env.CLOUDINARY_CLOUD_NAME ? "SIM" : "NÃO"}`,
+    );
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🦕🤠 DinoWest Ranch rodando com sucesso na porta ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Erro ao iniciar o banco de dados:", err);
+    process.exit(1);
+  });
