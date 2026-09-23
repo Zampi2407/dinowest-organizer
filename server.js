@@ -3,6 +3,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const initDatabase = require("./database");
+const compression = require("compression");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,7 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(compression());
 
 let db;
 
@@ -361,6 +363,33 @@ app.post("/api/fotos", (req, res) => {
 app.delete("/api/fotos/:id", (req, res) => {
   run("DELETE FROM fotos WHERE id = ?", [req.params.id]);
   res.json({ message: "Foto removida!" });
+});
+
+app.post("/api/fotos", (req, res) => {
+  try {
+    const { legenda, imagem } = req.body;
+
+    console.log("Recebendo foto...");
+    console.log("Legenda:", legenda);
+    console.log("Tamanho da imagem:", imagem ? imagem.length : 0, "caracteres");
+
+    if (!imagem) {
+      return res.status(400).json({ error: "Imagem não fornecida" });
+    }
+
+    const result = run("INSERT INTO fotos (legenda, imagem) VALUES (?, ?)", [
+      legenda || "",
+      imagem,
+    ]);
+    console.log("Foto salva com ID:", result.lastInsertRowid);
+
+    res.json({ id: result.lastInsertRowid, message: "Foto adicionada!" });
+  } catch (err) {
+    console.error("Erro ao salvar foto:", err);
+    res
+      .status(500)
+      .json({ error: "Erro interno do servidor", details: err.message });
+  }
 });
 
 // ==========================================

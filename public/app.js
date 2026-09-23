@@ -1328,7 +1328,7 @@ if (formFoto) {
         showNotification("Processando foto...", "📸");
 
         // Comprimir a imagem antes de enviar
-        const compressedImage = await compressImage(file, 800, 0.7);
+        const compressedImage = await compressImage(file, 600, 0.6);
 
         await api("/api/fotos", "POST", {
           legenda: legendaInput.value,
@@ -1358,7 +1358,7 @@ function compressImage(file, maxWidth, quality) {
         let width = img.width;
         let height = img.height;
 
-        // Redimensionar mantendo proporção
+        // Redimensionar mais agressivamente
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
@@ -1370,9 +1370,18 @@ function compressImage(file, maxWidth, quality) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Converter para base64 comprimido (JPEG com qualidade 70%)
+        // Converter para JPEG com qualidade menor
         const compressed = canvas.toDataURL("image/jpeg", quality);
-        resolve(compressed);
+
+        // Verificar tamanho
+        const sizeInMB = (compressed.length * 0.75) / (1024 * 1024);
+        console.log("Tamanho da imagem comprimida:", sizeInMB.toFixed(2), "MB");
+
+        if (sizeInMB > 5) {
+          reject(new Error("Imagem ainda muito grande após compressão"));
+        } else {
+          resolve(compressed);
+        }
       };
       img.onerror = reject;
       img.src = event.target.result;
@@ -1381,13 +1390,6 @@ function compressImage(file, maxWidth, quality) {
     reader.readAsDataURL(file);
   });
 }
-
-window.deleteFoto = async function (id) {
-  if (confirm("Remover esta foto?")) {
-    await api(`/api/fotos/${id}`, "DELETE");
-    loadFotos();
-  }
-};
 
 // ==========================================
 // ✨ SONHOS DO CASAL
