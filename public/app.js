@@ -1315,7 +1315,7 @@ async function loadFotos() {
   }
 }
 
-// ====== GALERIA DE FOTOS (VERSÃO ÚNICA E DEFINITIVA) ======
+// ====== GALERIA DE FOTOS COM CLOUDINARY ======
 async function loadFotos() {
   try {
     const fotos = await api("/api/fotos");
@@ -1362,7 +1362,7 @@ function setupFormFoto() {
     }
 
     try {
-      showNotification("Enviando foto...", "📸");
+      showNotification("Enviando foto para nuvem...", "☁️");
 
       const formData = new FormData();
       formData.append("imagem", file);
@@ -1403,7 +1403,6 @@ window.deleteFoto = async function (id) {
   }
 };
 
-// Chamar a setup quando o app carregar
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", setupFormFoto);
 } else {

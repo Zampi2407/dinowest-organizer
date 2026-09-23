@@ -1,3 +1,12 @@
+require("dotenv").config();
+const cloudinary = require("cloudinary").v2;
+
+// Configurar Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -367,10 +376,7 @@ app.put("/api/dias-juntos", (req, res) => {
   res.json({ message: "Data atualizada!" });
 });
 
-// ==========================================
-//  ROTAS: FOTOS
-// ==========================================
-// ====== ROTAS DE FOTOS (COM UPLOAD DE ARQUIVO) ======
+/// ====== ROTAS DE FOTOS COM CLOUDINARY ======
 app.get("/api/fotos", (req, res) => {
   try {
     const fotos = query("SELECT * FROM fotos ORDER BY data_adicionada DESC");
@@ -381,26 +387,43 @@ app.get("/api/fotos", (req, res) => {
   }
 });
 
-app.post("/api/fotos", upload.single("imagem"), (req, res) => {
+app.post("/api/fotos", upload.single("imagem"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Nenhuma imagem enviada" });
     }
 
     const legenda = req.body.legenda || "";
-    const caminhoImagem = "/uploads/" + req.file.filename;
 
-    console.log("Salvando foto:", caminhoImagem);
+    console.log("Enviando foto para Cloudinary...");
 
+    // Upload para Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "dinowest-fotos",
+      transformation: [
+        { width: 800, crop: "limit" },
+        { quality: "auto", fetch_format: "auto" },
+      ],
+    });
+
+    console.log("Foto enviada! URL:", result.secure_url);
+
+    // Salvar URL no banco (não o arquivo!)
     run("INSERT INTO fotos (legenda, imagem) VALUES (?, ?)", [
       legenda,
-      caminhoImagem,
+      result.secure_url,
     ]);
 
-    res.json({ message: "Foto adicionada!", caminho: caminhoImagem });
+    // Apagar arquivo temporário local
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      message: "Foto adicionada!",
+      url: result.secure_url,
+    });
   } catch (err) {
     console.error("Erro ao salvar foto:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erro interno", details: err.message });
   }
 });
 
@@ -409,10 +432,15 @@ app.delete("/api/fotos/:id", (req, res) => {
     const foto = get("SELECT imagem FROM fotos WHERE id = ?", [req.params.id]);
 
     if (foto && foto.imagem) {
-      const caminhoCompleto = path.join(__dirname, "public", foto.imagem);
-      if (fs.existsSync(caminhoCompleto)) {
-        fs.unlinkSync(caminhoCompleto);
-      }
+      // Extrair public_id da URL do Cloudinary
+      const urlParts = foto.imagem.split("/");
+      const publicId =
+        "dinowest-fotos/" + urlParts[urlParts.length - 1].split(".")[0];
+
+      // Deletar do Cloudinary
+      cloudinary.uploader.destroy(publicId).catch((err) => {
+        console.log("Erro ao deletar do Cloudinary:", err);
+      });
     }
 
     run("DELETE FROM fotos WHERE id = ?", [req.params.id]);
