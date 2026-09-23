@@ -3,9 +3,13 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const initDatabase = require("./database");
-require("dotenv").config();
 const cloudinary = require("cloudinary").v2;
 const multer = require("multer");
+
+// Carregar variáveis de ambiente (só funciona localmente com .env)
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 
 // Configurar Cloudinary
 cloudinary.config({
@@ -37,10 +41,17 @@ const upload = multer({
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// --- A PARTIR DAQUI, MANTÉM TUDO O QUE JÁ ESTAVA NO SEU ARQUIVO ---
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+
+// ... (suas rotas de API, banco de dados, etc.) ...
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
 
 let db;
 
