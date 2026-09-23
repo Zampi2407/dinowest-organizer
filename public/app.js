@@ -1285,6 +1285,35 @@ async function loadFotos() {
   }
 }
 
+// ====== GALERIA DE FOTOS COM COMPRESSÃO ======
+async function loadFotos() {
+  try {
+    const fotos = await api("/api/fotos");
+    const container = document.getElementById("lista-fotos");
+    if (!container) return;
+
+    if (fotos.length === 0) {
+      container.innerHTML =
+        '<p style="text-align:center; color:var(--text-muted); padding:2rem; grid-column:1/-1;">Nenhuma foto ainda. Adicione a primeira!</p>';
+      return;
+    }
+
+    container.innerHTML = fotos
+      .map(
+        (f) => `
+      <div class="foto-card">
+        <button class="foto-delete" onclick="deleteFoto(${f.id})">🗑️</button>
+        <img src="${f.imagem}" alt="${f.legenda || "Foto"}">
+        ${f.legenda ? `<div class="foto-legenda">${f.legenda}</div>` : ""}
+      </div>
+    `,
+      )
+      .join("");
+  } catch (e) {
+    console.error("Erro fotos:", e);
+  }
+}
+
 const formFoto = document.getElementById("form-foto");
 if (formFoto) {
   formFoto.addEventListener("submit", async (e) => {
@@ -1307,7 +1336,7 @@ if (formFoto) {
         });
 
         formFoto.reset();
-        showNotification("Foto adicionada com sucesso! 📸", "📸");
+        showNotification("Foto adicionada com sucesso! ", "📸");
         loadFotos();
       }
     } catch (err) {
@@ -1341,7 +1370,7 @@ function compressImage(file, maxWidth, quality) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Converter para base64 comprimido
+        // Converter para base64 comprimido (JPEG com qualidade 70%)
         const compressed = canvas.toDataURL("image/jpeg", quality);
         resolve(compressed);
       };
@@ -1352,6 +1381,13 @@ function compressImage(file, maxWidth, quality) {
     reader.readAsDataURL(file);
   });
 }
+
+window.deleteFoto = async function (id) {
+  if (confirm("Remover esta foto?")) {
+    await api(`/api/fotos/${id}`, "DELETE");
+    loadFotos();
+  }
+};
 
 // ==========================================
 // ✨ SONHOS DO CASAL
