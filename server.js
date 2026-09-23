@@ -1,5 +1,11 @@
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
+const initDatabase = require("./database");
 require("dotenv").config();
 const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
 
 // Configurar Cloudinary
 cloudinary.config({
@@ -7,17 +13,8 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
-const initDatabase = require("./database");
-const compression = require("compression");
 
-const multer = require("multer");
-const path = require("path");
-
-// Configuração do multer
+// Configurar multer para uploads temporários
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "public/uploads"));
@@ -34,7 +31,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB máximo
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 const app = express();
@@ -44,7 +41,6 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
-app.use(compression());
 
 let db;
 
