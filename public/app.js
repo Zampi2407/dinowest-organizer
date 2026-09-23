@@ -1500,49 +1500,111 @@ loadPageData = function (page) {
 };
 
 // ==========================================
-// 🔔 SISTEMA DE NOTIFICAÇÕES DO NAVEGADOR
 // ==========================================
+//  SISTEMA DE NOTIFICAÇÕES AGRESSIVO
+// ==========================================
+
+let audioAlarme = null;
+
+// Criar som de alarme chato (tipo despertador)
+function criarSomAlarme() {
+  if (!audioContext) initAudio();
+
+  const duration = 0.3;
+  const repeat = 10; // Repete 10 vezes
+
+  for (let i = 0; i < repeat; i++) {
+    setTimeout(() => {
+      if (!audioContext) return;
+      try {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = "square"; // Som mais irritante
+        osc.frequency.value = 880; // Tom agudo
+        gain.gain.setValueAtTime(0.5, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioContext.currentTime + duration,
+        );
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start();
+        osc.stop(audioContext.currentTime + duration);
+      } catch (e) {}
+    }, i * 400); // A cada 400ms
+  }
+}
 
 // Pedir permissão para notificações
 function solicitarPermissaoNotificacoes() {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission().then((permission) => {
-      if (permission === "granted") {
-        showNotification("Notificações ativadas! 🔔", "🔔");
-      }
-    });
+  if ("Notification" in window) {
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          showNotification("Notificações ativadas! 🔔", "🔔");
+          // Teste imediato
+          setTimeout(() => {
+            enviarNotificacao(
+              "🤠 Teste DinoWest",
+              "Se você viu isso, está funcionando! Yeehaw!",
+            );
+            criarSomAlarme();
+          }, 1000);
+        } else {
+          showNotification(
+            "Notificações bloqueadas. Clique no cadeado 🔒 na barra de endereço.",
+            "⚠️",
+          );
+        }
+      });
+    } else if (Notification.permission === "granted") {
+      showNotification("Notificações já estão ativas! 🔔", "🔔");
+      // Teste imediato
+      setTimeout(() => {
+        enviarNotificacao(
+          " Teste DinoWest",
+          "Se você viu isso, está funcionando! Yeehaw!",
+        );
+        criarSomAlarme();
+      }, 1000);
+    }
+  } else {
+    showNotification("Seu navegador não suporta notificações", "❌");
   }
 }
 
 // Enviar notificação
-function enviarNotificacao(titulo, corpo, icone = "") {
+function enviarNotificacao(titulo, corpo) {
   if ("Notification" in window && Notification.permission === "granted") {
     const notificacao = new Notification(titulo, {
       body: corpo,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
       tag: "dinowest-notificacao",
-      requireInteraction: false,
+      requireInteraction: true, // Não fecha sozinha!
+      silent: false,
     });
 
-    // Tocar som de notificação
-    if (somAtivo) {
-      playTone(800, 0.1, "sine", 0.2);
-      setTimeout(() => playTone(1000, 0.15, "sine", 0.2), 100);
+    // Tocar som de alarme chato
+    criarSomAlarme();
+
+    // Vibrar no celular (se suportar)
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 200]);
     }
 
-    // Fechar automaticamente após 5 segundos
-    setTimeout(() => notificacao.close(), 5000);
+    // Fechar após 30 segundos
+    setTimeout(() => notificacao.close(), 30000);
   }
 }
 
-// Verificar lembretes a cada minuto
+// Verificar lembretes a cada 30 segundos
 function verificarLembretes() {
-  const agora = new Date();
-  const agoraStr = agora.toISOString().slice(0, 16); // formato: YYYY-MM-DDTHH:mm
-
   api("/api/lembretes")
     .then((lembretes) => {
+      const agora = new Date();
+      const agoraStr = agora.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+
       lembretes.forEach((l) => {
         if (
           l.data_hora &&
@@ -1550,7 +1612,7 @@ function verificarLembretes() {
           !l.concluido
         ) {
           enviarNotificacao("⏰ Lembrete DinoWest", l.texto);
-          // Marcar como notificado (evita duplicar)
+          // Marcar como notificado (evita duplicar no mesmo minuto)
           api(`/api/lembretes/${l.id}`, "PUT").catch(() => {});
         }
       });
@@ -1558,17 +1620,16 @@ function verificarLembretes() {
     .catch(() => {});
 }
 
-// Verificar água a cada hora
+// Verificar água a cada 30 minutos
 function verificarAgua() {
   api("/api/agua")
     .then((data) => {
       if (data.copos < data.meta) {
         const hora = new Date().getHours();
         if (hora >= 8 && hora <= 22) {
-          // Só durante o dia
           enviarNotificacao(
             "💧 Hora da Água!",
-            `Você já bebeu ${data.copos} de ${data.meta} copos hoje. Bora se hidratar, cowgirl!`,
+            `Você já bebeu ${data.copos} de ${data.meta} copos. Bora se hidratar, cowgirl! 🤠`,
           );
         }
       }
@@ -1576,7 +1637,7 @@ function verificarAgua() {
     .catch(() => {});
 }
 
-// Verificar remédios
+// Verificar remédios a cada 30 segundos
 function verificarRemedios() {
   api("/api/medicamentos")
     .then((meds) => {
@@ -1597,19 +1658,19 @@ function verificarRemedios() {
 
 // Inicializar sistema de notificações
 function iniciarNotificacoes() {
-  solicitarPermissaoNotificacoes();
+  // Verificar a cada 30 segundos
+  setInterval(verificarLembretes, 30000);
+  setInterval(verificarRemedios, 30000);
 
-  // Verificar a cada minuto
-  setInterval(verificarLembretes, 60000);
-
-  // Verificar água a cada hora
-  setInterval(verificarAgua, 3600000);
-
-  // Verificar remédios a cada minuto
-  setInterval(verificarRemedios, 60000);
+  // Verificar água a cada 30 minutos
+  setInterval(verificarAgua, 1800000);
 
   console.log("🔔 Sistema de notificações ativado!");
 }
+
+// Tornar funções globais
+window.solicitarPermissaoNotificacoes = solicitarPermissaoNotificacoes;
+window.enviarNotificacao = enviarNotificacao;
 
 // Iniciar quando app carregar
 if (document.readyState === "loading") {
