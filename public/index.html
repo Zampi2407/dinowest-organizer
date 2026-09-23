@@ -23,10 +23,6 @@
     🔇 Ativar Som
   </button>
 
-  <button id="btn-testar-notificacao" class="btn-ativar-som" onclick="solicitarPermissaoNotificacoes()" style="right: 180px;">
-    🔔 Testar Notificação
-  </button>
-
   <!-- LOADING -->
   <div id="loading-screen">
     <div class="loading-content">
@@ -174,6 +170,10 @@
       <a class="nav-item" data-page="sonhos" onclick="navigateTo('sonhos')">
         <span class="nav-icon">✨</span>
         <span class="nav-text">Sonhos</span>
+      </a>
+      <a class="nav-item" onclick="solicitarPermissaoNotificacoes()">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-text">Testar Notificações</span>
       </a>
     </div>
 
