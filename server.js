@@ -54,13 +54,12 @@ function run(sql, params = []) {
   fs.writeFileSync(path.join(__dirname, "dinowest.db"), Buffer.from(data));
 }
 
-function get(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const result = stmt.step() ? stmt.getAsObject() : null;
-  stmt.free();
-  return result;
-}
+const run = (sql, params = []) => {
+  db.run(sql, params);
+  const lastId = db.getlastInsertRowid();
+  saveDatabase(db);
+  return { lastInsertRowid: lastId };
+};
 
 initDatabase()
   .then((database) => {
