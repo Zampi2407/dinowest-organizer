@@ -1668,3 +1668,9 @@ textarea {
 .modal-buttons button {
   flex: 1;
 }
+
+#btn-notificacoes.ativo {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}

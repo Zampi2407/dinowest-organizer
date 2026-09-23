@@ -1499,6 +1499,125 @@ loadPageData = function (page) {
   if (page === "sonhos") loadSonhos();
 };
 
+// ==========================================
+// 🔔 SISTEMA DE NOTIFICAÇÕES DO NAVEGADOR
+// ==========================================
+
+// Pedir permissão para notificações
+function solicitarPermissaoNotificacoes() {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        showNotification("Notificações ativadas! 🔔", "🔔");
+      }
+    });
+  }
+}
+
+// Enviar notificação
+function enviarNotificacao(titulo, corpo, icone = "") {
+  if ("Notification" in window && Notification.permission === "granted") {
+    const notificacao = new Notification(titulo, {
+      body: corpo,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: "dinowest-notificacao",
+      requireInteraction: false,
+    });
+
+    // Tocar som de notificação
+    if (somAtivo) {
+      playTone(800, 0.1, "sine", 0.2);
+      setTimeout(() => playTone(1000, 0.15, "sine", 0.2), 100);
+    }
+
+    // Fechar automaticamente após 5 segundos
+    setTimeout(() => notificacao.close(), 5000);
+  }
+}
+
+// Verificar lembretes a cada minuto
+function verificarLembretes() {
+  const agora = new Date();
+  const agoraStr = agora.toISOString().slice(0, 16); // formato: YYYY-MM-DDTHH:mm
+
+  api("/api/lembretes")
+    .then((lembretes) => {
+      lembretes.forEach((l) => {
+        if (
+          l.data_hora &&
+          l.data_hora.slice(0, 16) === agoraStr &&
+          !l.concluido
+        ) {
+          enviarNotificacao("⏰ Lembrete DinoWest", l.texto);
+          // Marcar como notificado (evita duplicar)
+          api(`/api/lembretes/${l.id}`, "PUT").catch(() => {});
+        }
+      });
+    })
+    .catch(() => {});
+}
+
+// Verificar água a cada hora
+function verificarAgua() {
+  api("/api/agua")
+    .then((data) => {
+      if (data.copos < data.meta) {
+        const hora = new Date().getHours();
+        if (hora >= 8 && hora <= 22) {
+          // Só durante o dia
+          enviarNotificacao(
+            "💧 Hora da Água!",
+            `Você já bebeu ${data.copos} de ${data.meta} copos hoje. Bora se hidratar, cowgirl!`,
+          );
+        }
+      }
+    })
+    .catch(() => {});
+}
+
+// Verificar remédios
+function verificarRemedios() {
+  api("/api/medicamentos")
+    .then((meds) => {
+      const agora = new Date();
+      const horaAtual = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
+
+      meds.forEach((m) => {
+        if (m.horario === horaAtual) {
+          enviarNotificacao(
+            "💊 Hora do Remédio!",
+            `${m.nome} - ${m.dosagem} (${m.frequencia})`,
+          );
+        }
+      });
+    })
+    .catch(() => {});
+}
+
+// Inicializar sistema de notificações
+function iniciarNotificacoes() {
+  solicitarPermissaoNotificacoes();
+
+  // Verificar a cada minuto
+  setInterval(verificarLembretes, 60000);
+
+  // Verificar água a cada hora
+  setInterval(verificarAgua, 3600000);
+
+  // Verificar remédios a cada minuto
+  setInterval(verificarRemedios, 60000);
+
+  console.log("🔔 Sistema de notificações ativado!");
+}
+
+// Iniciar quando app carregar
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", iniciarNotificacoes);
+} else {
+  iniciarNotificacoes();
+}
+
 console.log(" Funcionalidades do casal carregadas!");
 
 console.log("🤠 DinoWest Ranch FINAL carregado!");
