@@ -48,18 +48,20 @@ function query(sql, params = []) {
   return results;
 }
 
-function run(sql, params = []) {
-  db.run(sql, params);
-  const data = db.export();
-  fs.writeFileSync(path.join(__dirname, "dinowest.db"), Buffer.from(data));
-}
-
 const run = (sql, params = []) => {
   db.run(sql, params);
   const lastId = db.getlastInsertRowid();
   saveDatabase(db);
   return { lastInsertRowid: lastId };
 };
+
+function get(sql, params = []) {
+  const stmt = db.prepare(sql);
+  stmt.bind(params);
+  const result = stmt.step() ? stmt.getAsObject() : null;
+  stmt.free();
+  return result;
+}
 
 initDatabase()
   .then((database) => {
