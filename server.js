@@ -385,15 +385,28 @@ app.get("/api/fotos", (req, res) => {
 
 app.post("/api/fotos", upload.single("imagem"), async (req, res) => {
   try {
+    console.log("=== INICIANDO UPLOAD ===");
+    console.log("Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
+    console.log(
+      "API Key:",
+      process.env.CLOUDINARY_API_KEY ? "Configurada" : "NÃO CONFIGURADA",
+    );
+    console.log(
+      "API Secret:",
+      process.env.CLOUDINARY_API_SECRET ? "Configurada" : "NÃO CONFIGURADA",
+    );
+
     if (!req.file) {
       return res.status(400).json({ error: "Nenhuma imagem enviada" });
     }
 
+    console.log("Arquivo recebido:", req.file.originalname);
+    console.log("Caminho temporário:", req.file.path);
+
     const legenda = req.body.legenda || "";
 
-    console.log("Enviando foto para Cloudinary...");
+    console.log("Enviando para Cloudinary...");
 
-    // Upload para Cloudinary
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: "dinowest-fotos",
       transformation: [
@@ -402,48 +415,27 @@ app.post("/api/fotos", upload.single("imagem"), async (req, res) => {
       ],
     });
 
-    console.log("Foto enviada! URL:", result.secure_url);
+    console.log("Upload Cloudinary OK! URL:", result.secure_url);
 
-    // Salvar URL no banco (não o arquivo!)
     run("INSERT INTO fotos (legenda, imagem) VALUES (?, ?)", [
       legenda,
       result.secure_url,
     ]);
 
-    // Apagar arquivo temporário local
-    fs.unlinkSync(req.file.path);
-
-    res.json({
-      message: "Foto adicionada!",
-      url: result.secure_url,
-    });
-  } catch (err) {
-    console.error("Erro ao salvar foto:", err);
-    res.status(500).json({ error: "Erro interno", details: err.message });
-  }
-});
-
-app.delete("/api/fotos/:id", (req, res) => {
-  try {
-    const foto = get("SELECT imagem FROM fotos WHERE id = ?", [req.params.id]);
-
-    if (foto && foto.imagem) {
-      // Extrair public_id da URL do Cloudinary
-      const urlParts = foto.imagem.split("/");
-      const publicId =
-        "dinowest-fotos/" + urlParts[urlParts.length - 1].split(".")[0];
-
-      // Deletar do Cloudinary
-      cloudinary.uploader.destroy(publicId).catch((err) => {
-        console.log("Erro ao deletar do Cloudinary:", err);
-      });
+    // Apagar arquivo temporário
+    try {
+      fs.unlinkSync(req.file.path);
+      console.log("Arquivo temporário apagado");
+    } catch (e) {
+      console.log("Erro ao apagar temporário:", e.message);
     }
 
-    run("DELETE FROM fotos WHERE id = ?", [req.params.id]);
-    res.json({ message: "Foto removida!" });
+    res.json({ message: "Foto adicionada!", url: result.secure_url });
   } catch (err) {
-    console.error("Erro ao deletar foto:", err);
-    res.status(500).json({ error: err.message });
+    console.error("=== ERRO NO UPLOAD ===");
+    console.error("Mensagem:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({ error: "Erro interno", details: err.message });
   }
 });
 
