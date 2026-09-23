@@ -1315,67 +1315,7 @@ async function loadFotos() {
   }
 }
 
-const formFoto = document.getElementById("form-foto");
-if (formFoto) {
-  formFoto.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const fileInput = document.getElementById("foto-file");
-    const legendaInput = document.getElementById("foto-legenda");
-    const file = fileInput.files[0];
-
-    if (!file) {
-      showNotification("Selecione uma foto primeiro!", "⚠️");
-      return false;
-    }
-
-    try {
-      showNotification("Processando foto... Aguarde.", "📸");
-
-      // Comprimir imagem de forma robusta
-      const compressedImage = await compressImageRobusta(file);
-
-      console.log(
-        "Enviando foto comprimida, tamanho:",
-        (compressedImage.length / 1024 / 1024).toFixed(2),
-        "MB",
-      );
-
-      const response = await fetch("/api/fotos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          legenda: legendaInput.value,
-          imagem: compressedImage,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Resposta do servidor:", errorText);
-        throw new Error(`Erro ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log("Foto salva:", data);
-
-      formFoto.reset();
-      showNotification("Foto adicionada com sucesso! 🎉", "📸");
-
-      // Recarregar lista após 500ms
-      setTimeout(loadFotos, 500);
-    } catch (err) {
-      console.error("Erro ao enviar foto:", err);
-      showNotification("Erro: " + err.message, "❌");
-    }
-
-    return false;
-  });
-}
-
-// Função de compressão robusta - tenta várias vezes com qualidade menor
-// ====== GALERIA DE FOTOS COM UPLOAD REAL ======
+// ====== GALERIA DE FOTOS (VERSÃO ÚNICA E DEFINITIVA) ======
 async function loadFotos() {
   try {
     const fotos = await api("/api/fotos");
@@ -1404,8 +1344,10 @@ async function loadFotos() {
   }
 }
 
-const formFoto = document.getElementById("form-foto");
-if (formFoto) {
+function setupFormFoto() {
+  const formFoto = document.getElementById("form-foto");
+  if (!formFoto) return;
+
   formFoto.addEventListener("submit", async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1422,7 +1364,6 @@ if (formFoto) {
     try {
       showNotification("Enviando foto...", "📸");
 
-      // Criar FormData para upload real
       const formData = new FormData();
       formData.append("imagem", file);
       formData.append("legenda", legendaInput.value);
@@ -1461,6 +1402,13 @@ window.deleteFoto = async function (id) {
     }
   }
 };
+
+// Chamar a setup quando o app carregar
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupFormFoto);
+} else {
+  setupFormFoto();
+}
 
 // ==========================================
 // ✨ SONHOS DO CASAL
