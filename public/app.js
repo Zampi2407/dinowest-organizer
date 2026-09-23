@@ -1286,6 +1286,7 @@ async function loadFotos() {
 }
 
 // ====== GALERIA DE FOTOS COM COMPRESSÃO ======
+// ====== GALERIA DE FOTOS COM COMPRESSÃO ROBUSTA ======
 async function loadFotos() {
   try {
     const fotos = await api("/api/fotos");
@@ -1303,7 +1304,7 @@ async function loadFotos() {
         (f) => `
       <div class="foto-card">
         <button class="foto-delete" onclick="deleteFoto(${f.id})">🗑️</button>
-        <img src="${f.imagem}" alt="${f.legenda || "Foto"}">
+        <img src="${f.imagem}" alt="${f.legenda || "Foto"}" loading="lazy">
         ${f.legenda ? `<div class="foto-legenda">${f.legenda}</div>` : ""}
       </div>
     `,
@@ -1319,77 +1320,138 @@ if (formFoto) {
   formFoto.addEventListener("submit", async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const fileInput = document.getElementById("foto-file");
+    const legendaInput = document.getElementById("foto-legenda");
+    const file = fileInput.files[0];
+
+    if (!file) {
+      showNotification("Selecione uma foto primeiro!", "⚠️");
+      return false;
+    }
+
     try {
-      const fileInput = document.getElementById("foto-file");
-      const legendaInput = document.getElementById("foto-legenda");
-      const file = fileInput.files[0];
+      showNotification("Processando foto... Aguarde.", "📸");
 
-      if (file) {
-        showNotification("Processando foto...", "📸");
+      // Comprimir imagem de forma robusta
+      const compressedImage = await compressImageRobusta(file);
 
-        // Comprimir a imagem antes de enviar
-        const compressedImage = await compressImage(file, 600, 0.6);
+      console.log(
+        "Enviando foto comprimida, tamanho:",
+        (compressedImage.length / 1024 / 1024).toFixed(2),
+        "MB",
+      );
 
-        await api("/api/fotos", "POST", {
+      const response = await fetch("/api/fotos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           legenda: legendaInput.value,
           imagem: compressedImage,
-        });
+        }),
+      });
 
-        formFoto.reset();
-        showNotification("Foto adicionada com sucesso! ", "📸");
-        loadFotos();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Resposta do servidor:", errorText);
+        throw new Error(`Erro ${response.status}: ${errorText}`);
       }
+
+      const data = await response.json();
+      console.log("Foto salva:", data);
+
+      formFoto.reset();
+      showNotification("Foto adicionada com sucesso! 🎉", "📸");
+
+      // Recarregar lista após 500ms
+      setTimeout(loadFotos, 500);
     } catch (err) {
-      console.error("Erro foto:", err);
-      showNotification("Erro ao adicionar foto. Tente uma menor.", "❌");
+      console.error("Erro ao enviar foto:", err);
+      showNotification("Erro: " + err.message, "❌");
     }
+
     return false;
   });
 }
 
-// Função para comprimir imagem
-function compressImage(file, maxWidth, quality) {
+// Função de compressão robusta - tenta várias vezes com qualidade menor
+async function compressImageRobusta(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
+        // Tentar com diferentes qualidades até funcionar
+        const tentativas = [
+          { maxWidth: 800, quality: 0.7 },
+          { maxWidth: 600, quality: 0.6 },
+          { maxWidth: 400, quality: 0.5 },
+          { maxWidth: 300, quality: 0.4 },
+        ];
 
-        // Redimensionar mais agressivamente
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
+        let tentativaIndex = 0;
+
+        function tentarCompressao() {
+          if (tentativaIndex >= tentativas.length) {
+            reject(new Error("Não foi possível comprimir a imagem"));
+            return;
+          }
+
+          const { maxWidth, quality } = tentativas[tentativaIndex];
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressed = canvas.toDataURL("image/jpeg", quality);
+          const sizeInMB = (compressed.length * 0.75) / (1024 * 1024);
+
+          console.log(
+            `Tentativa ${tentativaIndex + 1}: ${width}x${height}, qualidade ${quality}, tamanho: ${sizeInMB.toFixed(2)}MB`,
+          );
+
+          // Se menor que 3MB, está bom
+          if (sizeInMB < 3) {
+            resolve(compressed);
+          } else {
+            tentativaIndex++;
+            tentarCompressao();
+          }
         }
 
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Converter para JPEG com qualidade menor
-        const compressed = canvas.toDataURL("image/jpeg", quality);
-
-        // Verificar tamanho
-        const sizeInMB = (compressed.length * 0.75) / (1024 * 1024);
-        console.log("Tamanho da imagem comprimida:", sizeInMB.toFixed(2), "MB");
-
-        if (sizeInMB > 5) {
-          reject(new Error("Imagem ainda muito grande após compressão"));
-        } else {
-          resolve(compressed);
-        }
+        tentarCompressao();
       };
-      img.onerror = reject;
+      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
       img.src = event.target.result;
     };
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
     reader.readAsDataURL(file);
   });
 }
+
+window.deleteFoto = async function (id) {
+  if (confirm("Remover esta foto?")) {
+    try {
+      await api(`/api/fotos/${id}`, "DELETE");
+      loadFotos();
+      showNotification("Foto removida!", "🗑️");
+    } catch (e) {
+      console.error("Erro ao deletar:", e);
+    }
+  }
+};
 
 // ==========================================
 // ✨ SONHOS DO CASAL

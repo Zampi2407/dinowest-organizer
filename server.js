@@ -346,32 +346,9 @@ app.put("/api/dias-juntos", (req, res) => {
 // ==========================================
 //  ROTAS: FOTOS
 // ==========================================
-app.get("/api/fotos", (req, res) => {
-  const fotos = query("SELECT * FROM fotos ORDER BY data_adicionada DESC");
-  res.json(fotos);
-});
-
-app.post("/api/fotos", (req, res) => {
-  const { legenda, imagem } = req.body;
-  const result = run("INSERT INTO fotos (legenda, imagem) VALUES (?, ?)", [
-    legenda || "",
-    imagem,
-  ]);
-  res.json({ id: result.lastInsertRowid, message: "Foto adicionada!" });
-});
-
-app.delete("/api/fotos/:id", (req, res) => {
-  run("DELETE FROM fotos WHERE id = ?", [req.params.id]);
-  res.json({ message: "Foto removida!" });
-});
-
 app.post("/api/fotos", (req, res) => {
   try {
     const { legenda, imagem } = req.body;
-
-    console.log("Recebendo foto...");
-    console.log("Legenda:", legenda);
-    console.log("Tamanho da imagem:", imagem ? imagem.length : 0, "caracteres");
 
     if (!imagem) {
       return res.status(400).json({ error: "Imagem não fornecida" });
@@ -381,14 +358,11 @@ app.post("/api/fotos", (req, res) => {
       legenda || "",
       imagem,
     ]);
-    console.log("Foto salva com ID:", result.lastInsertRowid);
 
     res.json({ id: result.lastInsertRowid, message: "Foto adicionada!" });
   } catch (err) {
     console.error("Erro ao salvar foto:", err);
-    res
-      .status(500)
-      .json({ error: "Erro interno do servidor", details: err.message });
+    res.status(500).json({ error: "Erro interno", details: err.message });
   }
 });
 
