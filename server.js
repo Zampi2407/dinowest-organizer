@@ -43,7 +43,7 @@ const upload = multer({
 });
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors());
