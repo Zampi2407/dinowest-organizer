@@ -1,0 +1,17 @@
+{
+  "name": "DinoWest Organizer",
+  "short_name": "DinoWest",
+  "description": "Organizador pessoal com tema Velho Oeste e Dinossauros 🦕🤠",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#1a0a1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦕</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

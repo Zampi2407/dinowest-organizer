@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a0f0a">
+  <title>DinoWest Ranch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rye&family=Playfair+Display:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+  <!-- BOTÃO ATIVAR SOM -->
+  <button id="btn-ativar-som" class="btn-ativar-som" onclick="ativarSom()">
+    🔇 Ativar Som
+  </button>
+
+  <!-- LOADING -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="loading-ornament"></div>
+      <div class="loading-logo">🤠</div>
+      <h1 class="loading-title">DINOWEST RANCH</h1>
+      <p class="loading-subtitle">Est. 1899 • Território do Velho Oeste</p>
+      <div class="loading-bar">
+        <div class="loading-progress" id="loading-progress"></div>
+      </div>
+      <p class="loading-quote">"A vida é uma cavalgada, cowgirl..."</p>
+      <div class="loading-ornament"></div>
+    </div>
+  </div>
+
+  <!-- TUTORIAL -->
+  <div id="tutorial-overlay" class="tutorial-overlay hidden">
+    <div class="tutorial-modal">
+      <div class="tutorial-header">
+        <div class="tutorial-badge">⭐</div>
+        <h2>Bem-vinda ao Ranch!</h2>
+        <p>Seu organizador pessoal do Velho Oeste</p>
+      </div>
+      <div class="tutorial-body">
+        <div class="tutorial-step active" data-step="1">
+          <div class="step-visual">☰</div>
+          <h3>Menu Lateral</h3>
+          <p>Toque no ☰ para acessar todas as seções: tarefas, agenda, finanças, ciclo, diário e muito mais!</p>
+        </div>
+        <div class="tutorial-step" data-step="2">
+          <div class="step-visual">🏠</div>
+          <h3>Dashboard</h3>
+          <p>Na tela inicial você vê um resumo completo do seu dia: tarefas, água, eventos e finanças.</p>
+        </div>
+        <div class="tutorial-step" data-step="3">
+          <div class="step-visual">💾</div>
+          <h3>Salvo Automaticamente</h3>
+          <p>Tudo que você adicionar é salvo instantaneamente. Nunca perca nada!</p>
+        </div>
+        <div class="tutorial-step" data-step="4">
+          <div class="step-visual">🦕</div>
+          <h3>Pronta para a Aventura!</h3>
+          <p>Este ranch é seu! Organize sua vida com estilo de cowgirl. Toque em "Começar" para iniciar!</p>
+        </div>
+      </div>
+      <div class="tutorial-footer">
+        <span class="tutorial-progress">Passo 1 de 4</span>
+        <div class="tutorial-buttons">
+          <button class="btn btn-secondary" onclick="prevTutorialStep()" id="btn-prev">← Voltar</button>
+          <button class="btn btn-primary" onclick="nextTutorialStep()" id="btn-next">Próximo →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER MOBILE -->
+  <header class="mobile-header">
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+    <div class="header-title">
+      <span>🤠</span>
+      <span>DinoWest</span>
+    </div>
+    <div class="header-spacer"></div>
+  </header>
+
+  <!-- MENU LATERAL -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <span class="brand-icon">🦕</span>
+        <div>
+          <h1>DinoWest</h1>
+          <p>Ranch da Cowgirl</p>
+        </div>
+      </div>
+      <button class="close-menu" onclick="toggleMenu()">✕</button>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-title">Principal</p>
+      <a class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Início</span>
+      </a>
+      <a class="nav-item" data-page="tarefas" onclick="navigateTo('tarefas')">
+        <span class="nav-icon">📋</span>
+        <span class="nav-text">Tarefas</span>
+      </a>
+      <a class="nav-item" data-page="agenda" onclick="navigateTo('agenda')">
+        <span class="nav-icon">📅</span>
+        <span class="nav-text">Agenda</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-title">Cuidados</p>
+      <a class="nav-item" data-page="ciclo" onclick="navigateTo('ciclo')">
+        <span class="nav-icon">🩸</span>
+        <span class="nav-text">Ciclo</span>
+      </a>
+      <a class="nav-item" data-page="agua" onclick="navigateTo('agua')">
+        <span class="nav-icon">💧</span>
+        <span class="nav-text">Água</span>
+      </a>
+      <a class="nav-item" data-page="medicamentos" onclick="navigateTo('medicamentos')">
+        <span class="nav-icon">💊</span>
+        <span class="nav-text">Remédios</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-title">Organização</p>
+      <a class="nav-item" data-page="financas" onclick="navigateTo('financas')">
+        <span class="nav-icon">💰</span>
+        <span class="nav-text">Finanças</span>
+      </a>
+      <a class="nav-item" data-page="compras" onclick="navigateTo('compras')">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-text">Compras</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-title">Pessoal</p>
+      <a class="nav-item" data-page="diario" onclick="navigateTo('diario')">
+        <span class="nav-icon">📝</span>
+        <span class="nav-text">Diário</span>
+      </a>
+      <a class="nav-item" data-page="habitos" onclick="navigateTo('habitos')">
+        <span class="nav-icon">🎯</span>
+        <span class="nav-text">Hábitos</span>
+      </a>
+      <a class="nav-item" data-page="lembretes" onclick="navigateTo('lembretes')">
+        <span class="nav-icon">⏰</span>
+        <span class="nav-text">Lembretes</span>
+      </a>
+      <a class="nav-item" data-page="dias-juntos" onclick="navigateTo('dias-juntos')">
+        <span class="nav-icon">💝</span>
+        <span class="nav-text">Dias Juntos</span>
+      </a>
+      <a class="nav-item" data-page="galeria" onclick="navigateTo('galeria')">
+        <span class="nav-icon">📸</span>
+        <span class="nav-text">Galeria</span>
+      </a>
+      <a class="nav-item" data-page="sonhos" onclick="navigateTo('sonhos')">
+        <span class="nav-icon">✨</span>
+        <span class="nav-text">Sonhos</span>
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="footer-ornament"></div>
+      <p>"Até o T-Rex se organiza!"</p>
+      <div class="footer-icons">🦖 🌵 </div>
+    </div>
+  </nav>
+
+  <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+  <!-- MASCOTE -->
+  <div id="mascote" class="mascote">
+    <div class="mascote-bubble" id="mascote-bubble"></div>
+    <div class="mascote-body">🦕</div>
+  </div>
+
+  <!-- MENSAGEM CONTAINER -->
+  <div id="mensagem-container"></div>
+
+  <!-- CONTEÚDO -->
+  <main class="content">
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h1 class="page-title">Rancho Principal</h1>
+        <p class="page-subtitle">Resumo do seu dia no Velho Oeste</p>
+      </div>
+
+      <div class="welcome-card" id="dashboard-greeting">
+        <div class="welcome-decoration">
+          <span class="deco-left">🌵</span>
+          <h2>Carregando...</h2>
+          <span class="deco-right">🦕</span>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>📊 Visão Geral</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon-bg">📋</div>
+          <div class="stat-value" id="dash-tarefas">0</div>
+          <div class="stat-label">Tarefas Pendentes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-bg">💧</div>
+          <div class="stat-value" id="dash-agua">0/8</div>
+          <div class="stat-label">Copos de Água</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-bg">📅</div>
+          <div class="stat-value" id="dash-eventos">0</div>
+          <div class="stat-label">Eventos Hoje</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-bg">⏰</div>
+          <div class="stat-value" id="dash-lembretes">0</div>
+          <div class="stat-label">Lembretes Ativos</div>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>💰 Baú do Tesouro</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div class="info-card">
+        <div id="dash-financas" class="financas-resumo">
+          <p>Carregando...</p>
+        </div>
+      </div>
+
+      <div class="western-quote">
+        <div class="quote-ornament">❝</div>
+        <p>"O sucesso não é final, o fracasso não é fatal: é a coragem de continuar que conta."</p>
+        <span class="quote-author">— Adaptado para cowgirls</span>
+      </div>
+    </section>
+
+    <!-- TAREFAS -->
+    <section id="page-tarefas" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Tarefas do Rancho</h1>
+        <p class="page-subtitle">Organize seus afazeres como uma verdadeira cowgirl</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon"></span>
+        <p>Adicione suas tarefas com prioridades e categorias. Marque como concluídas quando terminar!</p>
+      </div>
+
+      <form id="form-tarefa" class="form-card">
+        <div class="form-header">
+          <h3>➕ Nova Tarefa</h3>
+        </div>
+        <div class="form-group">
+          <label>O que precisa fazer?</label>
+          <input type="text" id="tarefa-titulo" placeholder="Ex: Comprar ração para o T-Rex" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prioridade</label>
+            <select id="tarefa-prioridade">
+              <option value="baixa">🟢 Baixa</option>
+              <option value="media" selected>🟡 Média</option>
+              <option value="alta">🔴 Alta</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Categoria</label>
+            <select id="tarefa-categoria">
+              <option value="geral">📦 Geral</option>
+              <option value="trabalho">💼 Trabalho</option>
+              <option value="casa">🏠 Casa</option>
+              <option value="saude">💚 Saúde</option>
+              <option value="pessoal">👤 Pessoal</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit">➕ Adicionar Tarefa</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>📋 Suas Tarefas</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-tarefas" class="list"></div>
+    </section>
+
+    <!-- AGENDA -->
+    <section id="page-agenda" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Agenda</h1>
+        <p class="page-subtitle">Seus compromissos e eventos importantes</p>
+      </div>
+
+      <form id="form-evento" class="form-card">
+        <div class="form-header">
+          <h3> Novo Evento</h3>
+        </div>
+        <div class="form-group">
+          <label>Nome do evento</label>
+          <input type="text" id="evento-titulo" placeholder="Ex: Consulta médica" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Início</label>
+            <input type="datetime-local" id="evento-inicio" required>
+          </div>
+          <div class="form-group">
+            <label>Término</label>
+            <input type="datetime-local" id="evento-fim">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Detalhes (opcional)</label>
+          <textarea id="evento-desc" rows="2" placeholder="Detalhes do evento..."></textarea>
+        </div>
+        <button type="submit" class="btn-submit">📅 Agendar Evento</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>📅 Próximos Eventos</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-eventos" class="list"></div>
+    </section>
+
+    <!-- CICLO -->
+    <section id="page-ciclo" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Ciclo Menstrual</h1>
+        <p class="page-subtitle">Acompanhe sua saúde com cuidado</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">💗</span>
+        <p>Registre seu ciclo para acompanhar sua saúde e prever os próximos períodos. Seus dados são privados!</p>
+      </div>
+
+      <form id="form-ciclo" class="form-card">
+        <div class="form-header">
+          <h3>🩸 Registrar Ciclo</h3>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Data de início</label>
+            <input type="date" id="ciclo-inicio" required>
+          </div>
+          <div class="form-group">
+            <label>Data de fim</label>
+            <input type="date" id="ciclo-fim">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fluxo</label>
+            <select id="ciclo-fluxo">
+              <option value="leve">🌸 Leve</option>
+              <option value="medio" selected>🌺 Médio</option>
+              <option value="intenso">🌹 Intenso</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Humor</label>
+            <select id="ciclo-humor">
+              <option value="😊">😊 Feliz</option>
+              <option value="😢">😢 Triste</option>
+              <option value="😤">😤 Irritada</option>
+              <option value="😴">😴 Cansada</option>
+              <option value="🥰">🥰 Carinhosa</option>
+              <option value="😰">😰 Ansiosa</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Sintomas</label>
+          <input type="text" id="ciclo-sintomas" placeholder="Ex: Cólica, dor de cabeça...">
+        </div>
+        <div class="form-group">
+          <label>Notas</label>
+          <textarea id="ciclo-notas" rows="2" placeholder="Observações..."></textarea>
+        </div>
+        <button type="submit" class="btn-submit">🩸 Registrar Ciclo</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>📊 Histórico</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-ciclo" class="list"></div>
+    </section>
+
+    <!-- ÁGUA -->
+    <section id="page-agua" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Hidratação</h1>
+        <p class="page-subtitle">Mantenha-se hidratada, cowgirl!</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">💧</span>
+        <p><strong>Meta: 8 copos por dia.</strong> Beber água melhora sua pele, dá mais energia e mantém sua saúde em dia!</p>
+      </div>
+
+      <div class="agua-card">
+        <div class="agua-visual">
+          <div class="agua-circle">
+            <div class="agua-fill" id="agua-fill"></div>
+            <div class="agua-text">
+              <div class="agua-count" id="agua-count">0</div>
+              <div class="agua-divider">/</div>
+              <div class="agua-meta" id="agua-meta">8</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="agua-buttons">
+          <button class="btn-agua btn-add" onclick="addAgua(1)">
+            <span>💧</span>
+            <span>Beber Água</span>
+          </button>
+          <button class="btn-agua btn-remove" onclick="addAgua(-1)">
+            <span>↩️</span>
+            <span>Desfazer</span>
+          </button>
+        </div>
+
+        <div class="agua-frase" id="agua-frase">
+          <span>🦕</span>
+          <p>"Um dinossauro hidratado é um dinossauro feliz!"</p>
+        </div>
+
+        <div class="agua-tips">
+          <h4>💡 Benefícios da Água</h4>
+          <ul>
+            <li>✨ Melhora a pele e cabelos</li>
+            <li>⚡ Aumenta a energia</li>
+            <li>🧠 Melhora a concentração</li>
+            <li>💪 Ajuda na digestão</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINANÇAS -->
+    <section id="page-financas" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Finanças</h1>
+        <p class="page-subtitle">Controle seu baú do tesouro</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">💰</span>
+        <p>Registre entradas e saídas para saber exatamente para onde vai seu dinheiro!</p>
+      </div>
+
+      <form id="form-financa" class="form-card">
+        <div class="form-header">
+          <h3>💰 Nova Transação</h3>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo</label>
+            <select id="financa-tipo">
+              <option value="receita">💚 Entrada</option>
+              <option value="despesa">💔 Saída</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" id="financa-valor" placeholder="0,00" step="0.01" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <input type="text" id="financa-desc" placeholder="Ex: Salário, Aluguel..." required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoria</label>
+            <select id="financa-categoria">
+              <option value="alimentacao">🍔 Alimentação</option>
+              <option value="transporte">🚗 Transporte</option>
+              <option value="saude">💊 Saúde</option>
+              <option value="beleza">💅 Beleza</option>
+              <option value="roupas">👗 Roupas</option>
+              <option value="lazer">🎮 Lazer</option>
+              <option value="moradia">🏠 Moradia</option>
+              <option value="salario">💼 Salário</option>
+              <option value="outros">📦 Outros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="financa-data">
+          </div>
+        </div>
+        <button type="submit" class="btn-submit">💰 Registrar</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>💰 Resumo</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="financas-resumo" class="resumo-card"></div>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>📜 Histórico</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-financas" class="list"></div>
+    </section>
+
+    <!-- COMPRAS -->
+    <section id="page-compras" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Lista de Compras</h1>
+        <p class="page-subtitle">Não esqueça nada no armazém!</p>
+      </div>
+
+      <form id="form-compra" class="form-card form-inline">
+        <div class="form-group flex-grow">
+          <input type="text" id="compra-item" placeholder="Item..." required>
+        </div>
+        <div class="form-group small">
+          <input type="text" id="compra-qtd" placeholder="Qtd" value="1">
+        </div>
+        <button type="submit" class="btn-submit">➕</button>
+      </form>
+
+      <div class="compras-info">
+        <div class="compra-stat">
+          <span> <strong id="compras-total">0</strong> itens</span>
+        </div>
+        <div class="compra-stat">
+          <span>✅ <strong id="compras-comprados">0</strong> comprados</span>
+        </div>
+      </div>
+
+      <div id="lista-compras" class="list"></div>
+    </section>
+
+    <!-- MEDICAMENTOS -->
+    <section id="page-medicamentos" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Medicamentos</h1>
+        <p class="page-subtitle">Controle seus remédios e horários</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">💊</span>
+        <p>Cadastre seus medicamentos para nunca esquecer nenhum horário!</p>
+      </div>
+
+      <form id="form-remedio" class="form-card">
+        <div class="form-header">
+          <h3>💊 Novo Medicamento</h3>
+        </div>
+        <div class="form-group">
+          <label>Nome do medicamento</label>
+          <input type="text" id="remedio-nome" placeholder="Ex: Vitamina D" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Dosagem</label>
+            <input type="text" id="remedio-dosagem" placeholder="Ex: 10mg">
+          </div>
+          <div class="form-group">
+            <label>Horário</label>
+            <input type="time" id="remedio-horario" value="08:00">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Frequência</label>
+          <select id="remedio-frequencia">
+            <option value="diario">Diário</option>
+            <option value="12h">A cada 12h</option>
+            <option value="8h">A cada 8h</option>
+            <option value="semanal">Semanal</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-submit">💊 Cadastrar</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2> Seus Medicamentos</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-remedios" class="list"></div>
+    </section>
+
+    <!-- DIÁRIO -->
+    <section id="page-diario" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Diário</h1>
+        <p class="page-subtitle">Seus pensamentos e momentos especiais</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">🔒</span>
+        <p>Seu diário é <strong>privado e seguro</strong>. Escreva o que sentir, quando quiser!</p>
+      </div>
+
+      <form id="form-diario" class="form-card">
+        <div class="form-header">
+          <h3>📝 Nova Entrada</h3>
+        </div>
+        <div class="form-group">
+          <label>Título (opcional)</label>
+          <input type="text" id="diario-titulo" placeholder="Título do dia...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Humor</label>
+            <select id="diario-humor">
+              <option value="🥰">🥰 Maravilhoso</option>
+              <option value="😊">😊 Bom</option>
+              <option value="😐">😐 Normal</option>
+              <option value="😢">😢 Triste</option>
+              <option value="😤">😤 Irritada</option>
+              <option value="😴">😴 Cansada</option>
+              <option value="🤠">🤠 Aventureira</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="diario-data">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Conteúdo</label>
+          <textarea id="diario-conteudo" rows="6" placeholder="Querido diário..." required></textarea>
+        </div>
+        <button type="submit" class="btn-submit">📝 Salvar Entrada</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>📖 Entradas Anteriores</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-diario" class="list"></div>
+    </section>
+
+    <!-- HÁBITOS -->
+    <section id="page-habitos" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Hábitos</h1>
+        <p class="page-subtitle">Construa rotinas saudáveis</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">🎯</span>
+        <p>Crie hábitos positivos e marque todos os dias. A constância é a chave do sucesso!</p>
+      </div>
+
+      <form id="form-habito" class="form-card form-inline">
+        <div class="form-group flex-grow">
+          <input type="text" id="habito-nome" placeholder="Novo hábito..." required>
+        </div>
+        <div class="form-group small">
+          <input type="text" id="habito-icone" placeholder="Ícone" value="⭐" maxlength="2">
+        </div>
+        <button type="submit" class="btn-submit">➕</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>🎯 Seus Hábitos</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div class="habitos-grid" id="lista-habitos"></div>
+
+      <div class="sugestoes-card">
+        <h4>💡 Sugestões de Hábitos</h4>
+        <div class="tags">
+          <span class="tag" onclick="addHabitoSugestao('Beber água', '💧')">💧 Água</span>
+          <span class="tag" onclick="addHabitoSugestao('Ler 15 min', '📚')">📚 Ler</span>
+          <span class="tag" onclick="addHabitoSugestao('Exercitar', '🏃')">🏃 Exercitar</span>
+          <span class="tag" onclick="addHabitoSugestao('Meditar', '🧘')">🧘 Meditar</span>
+          <span class="tag" onclick="addHabitoSugestao('Dormir cedo', '😴')">😴 Dormir</span>
+          <span class="tag" onclick="addHabitoSugestao('Skincare', '✨')">✨ Skincare</span>
+        </div>
+      </div>
+    </section>
+    <!-- CONTADOR DE DIAS JUNTOS -->
+    <section id="page-dias-juntos" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Nossa História</h1>
+        <p class="page-subtitle">Cada dia ao seu lado é uma aventura</p>
+      </div>
+
+      <div class="dias-juntos-card">
+        <div class="dias-numero" id="dias-contador">0</div>
+        <div class="dias-label">dias juntos</div>
+        <div class="dias-detalle" id="dias-detalle">Calculando...</div>
+      </div>
+
+      <div class="info-card">
+        <h3>💝 Nossa Data Especial</h3>
+        <p id="data-inicio-relacionamento">Carregando...</p>
+        <button class="btn-submit" onclick="mudarDataInicio()" style="margin-top:1rem;">📅 Alterar Data</button>
+      </div>
+
+      <div class="western-quote">
+        <div class="quote-ornament">❝</div>
+        <p>"Cada dia com você é o melhor dia da minha vida."</p>
+        <span class="quote-author">— Com todo amor, Thiago 💜</span>
+      </div>
+    </section>
+
+    <!-- GALERIA DE FOTOS -->
+    <section id="page-galeria" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Nossa Galeria</h1>
+        <p class="page-subtitle">Momentos especiais que vivemos juntos</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">📸</span>
+        <p>Adicione fotos dos nossos momentos especiais! Cada imagem conta uma história.</p>
+      </div>
+
+      <form id="form-foto" class="form-card">
+        <div class="form-header">
+          <h3>📸 Nova Foto</h3>
+        </div>
+        <div class="form-group">
+          <label>Selecione uma foto</label>
+          <input type="file" id="foto-file" accept="image/*" required>
+        </div>
+        <div class="form-group">
+          <label>Legenda (opcional)</label>
+          <input type="text" id="foto-legenda" placeholder="Ex: Nosso primeiro encontro...">
+        </div>
+        <button type="submit" class="btn-submit">📸 Adicionar Foto</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>📷 Nossas Fotos</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div class="galeria-grid" id="lista-fotos"></div>
+    </section>
+
+    <!-- SONHOS DO CASAL -->
+    <section id="page-sonhos" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Nossos Sonhos</h1>
+        <p class="page-subtitle">Tudo que queremos viver juntos</p>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">✨</span>
+        <p>Adicione seus sonhos e metas como casal. Vamos realizar todos juntos!</p>
+      </div>
+
+      <form id="form-sonho" class="form-card">
+        <div class="form-header">
+          <h3>✨ Novo Sonho</h3>
+        </div>
+        <div class="form-group">
+          <label>Qual é o sonho?</label>
+          <input type="text" id="sonho-texto" placeholder="Ex: Viajar para Paris, Adotar um cachorro..." required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoria</label>
+            <select id="sonho-categoria">
+              <option value="viagem">✈️ Viagem</option>
+              <option value="casa">🏠 Casa</option>
+              <option value="experiencia"> Experiência</option>
+              <option value="familia">👨‍‍👧 Família</option>
+              <option value="outro">📦 Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Prioridade</label>
+            <select id="sonho-prioridade">
+              <option value="alta">🔴 Alta</option>
+              <option value="media" selected>🟡 Média</option>
+              <option value="baixa">🟢 Baixa</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit">✨ Adicionar Sonho</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2> Lista de Sonhos</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-sonhos" class="list"></div>
+    </section>
+    <!-- LEMBRETES -->
+    <section id="page-lembretes" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Lembretes</h1>
+        <p class="page-subtitle">O xerife não deixa você esquecer nada!</p>
+      </div>
+
+      <form id="form-lembrete" class="form-card">
+        <div class="form-header">
+          <h3>⏰ Novo Lembrete</h3>
+        </div>
+        <div class="form-group">
+          <label>O que lembrar?</label>
+          <input type="text" id="lembrete-texto" placeholder="Ex: Ligar para mamãe" required>
+        </div>
+        <div class="form-group">
+          <label>Data e hora (opcional)</label>
+          <input type="datetime-local" id="lembrete-data">
+        </div>
+        <button type="submit" class="btn-submit">⏰ Criar Lembrete</button>
+      </form>
+
+      <div class="section-title">
+        <div class="title-ornament"></div>
+        <h2>🔔 Lembretes Ativos</h2>
+        <div class="title-ornament"></div>
+      </div>
+
+      <div id="lista-lembretes" class="list"></div>
+    </section>
+
+  </main>
+
+  <!-- NOTIFICAÇÕES -->
+  <div id="notifications" class="notifications"></div>
+
+  <script src="/app.js"></script>
+</body>
+
+</html>
