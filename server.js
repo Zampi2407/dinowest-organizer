@@ -38,9 +38,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
 // --- A PARTIR DAQUI, MANTÉM TUDO O QUE JÁ ESTAVA NO SEU ARQUIVO ---
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
@@ -507,23 +504,15 @@ app.get("*", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "index.html")),
 );
 
-function startServer(port) {
-  const server = app.listen(port, "0.0.0.0", () => {
-    console.log(`🤠 DinoWest Ranch rodando na porta ${port}`);
-  });
+// ==========================================
+// INICIALIZAÇÃO DO SERVIDOR
+// ==========================================
+const PORT = process.env.PORT || 8000;
 
-  server.on("error", (err) => {
-    if (err.code === "EADDRINUSE") {
-      console.log(`⚠️ Porta ${port} ocupada, tentando ${port + 1}...`);
-      server.close();
-      setTimeout(() => startServer(port + 1), 1000);
-    } else {
-      console.error("Erro fatal:", err);
-      process.exit(1);
-    }
-  });
-}
-
-// Inicia o servidor
-const startPort = parseInt(process.env.PORT) || 3000;
-startServer(startPort);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🤠 DinoWest Ranch rodando com sucesso na porta ${PORT}`);
+  console.log(
+    "☁️ Cloudinary configurado:",
+    process.env.CLOUDINARY_CLOUD_NAME ? "SIM" : "NÃO",
+  );
+});
